@@ -48,7 +48,7 @@ def update_task_status(
     new_status: str,
 ) -> None:
     """
-    Update the status of a task.
+    Update the status of a specific task.
     """
 
     initialize_task_state()
@@ -59,9 +59,38 @@ def update_task_status(
             break
 
 
-def clear_tasks() -> None:
+
+def delete_task(task_id: str) -> None:
     """
-    Remove all tasks from the current session.
+    Delete a specific task and clean up associated session state keys.
     """
 
-    st.session_state[TASK_STATE_KEY] = []
+    initialize_task_state()
+
+    st.session_state[TASK_STATE_KEY] = [
+        task
+        for task in st.session_state[TASK_STATE_KEY]
+        if task.id != task_id
+    ]
+
+    # Clean up associated session keys
+    st.session_state.pop(f"status_{task_id}", None)
+    st.session_state.pop(f"board_status_{task_id}", None)
+    st.session_state.pop(f"delete_plan_{task_id}", None)
+    st.session_state.pop(f"delete_board_{task_id}", None)
+
+
+def clear_tasks() -> None:
+    """
+    Remove all tasks from the current session and clean up session keys.
+    """
+
+    initialize_task_state()
+
+    for task in st.session_state.get(TASK_STATE_KEY, []):
+        st.session_state.pop(f"status_{task.id}", None)
+        st.session_state.pop(f"board_status_{task.id}", None)
+        st.session_state.pop(f"delete_plan_{task.id}", None)
+        st.session_state.pop(f"delete_board_{task.id}", None)
+
+    st.session_state[TASK_STATE_KEY] = []

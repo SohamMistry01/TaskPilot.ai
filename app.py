@@ -32,7 +32,7 @@ st.set_page_config(
 
 
 # ---------------------------------------------------------------------------
-# Initialize state
+# Initialize application state
 # ---------------------------------------------------------------------------
 
 initialize_task_state()
@@ -58,23 +58,29 @@ st.write(
 # ---------------------------------------------------------------------------
 
 with st.sidebar:
+
     st.header("Configuration")
 
     model_name = st.selectbox(
         "Groq Model",
         options=list(AVAILABLE_MODELS.keys()),
-        index=list(AVAILABLE_MODELS.values()).index(DEFAULT_MODEL),
+        index=list(AVAILABLE_MODELS.values()).index(
+            DEFAULT_MODEL
+        ),
     )
 
     selected_model = AVAILABLE_MODELS[model_name]
 
-    st.caption(f"Model ID: `{selected_model}`")
+    st.caption(
+        f"Model ID: `{selected_model}`"
+    )
 
     st.divider()
 
     st.subheader("Team")
 
     for member in team_members:
+
         st.write(
             f"**{member.name}**  \n"
             f"{member.role}"
@@ -82,12 +88,11 @@ with st.sidebar:
 
     st.divider()
 
-    if st.button(
+    st.button(
         "Clear All Tasks",
-        use_container_width=True,
-    ):
-        clear_tasks()
-        st.rerun()
+        width="stretch",
+        on_click=clear_tasks,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -110,14 +115,23 @@ user_request = st.text_area(
 if st.button(
     "✨ Generate Task Plan",
     type="primary",
-    use_container_width=True,
+    width="stretch",
 ):
+
     if not user_request.strip():
-        st.warning("Please describe the project first.")
+
+        st.warning(
+            "Please describe the project first."
+        )
 
     else:
-        with st.spinner("AI is analyzing the project and creating tasks..."):
+
+        with st.spinner(
+            "AI is analyzing the project and creating tasks..."
+        ):
+
             try:
+
                 llm = get_llm(
                     model_name=selected_model,
                     temperature=0.2,
@@ -132,12 +146,15 @@ if st.button(
                 add_tasks(task_plan.tasks)
 
                 st.success(
-                    f"Generated {len(task_plan.tasks)} tasks successfully."
+                    f"Generated "
+                    f"{len(task_plan.tasks)} tasks successfully."
                 )
 
             except Exception as exc:
+
                 st.error(
-                    "Something went wrong while generating the task plan."
+                    "Something went wrong while "
+                    "generating the task plan."
                 )
 
                 st.exception(exc)
@@ -149,24 +166,88 @@ if st.button(
 
 tasks = get_tasks()
 
+
 if tasks:
+
     st.divider()
 
-    st.subheader("Project Summary")
+    # ---------------------------------------------------------------
+    # Project statistics
+    # ---------------------------------------------------------------
 
-    # The summary is generated when the task plan is created.
-    # For this MVP, task descriptions provide the main project context.
-    st.caption(
-        f"{len(tasks)} task(s) currently in the project."
+    total_tasks = len(tasks)
+
+    todo_tasks = sum(
+        task.status == "To Do"
+        for task in tasks
     )
+
+    in_progress_tasks = sum(
+        task.status == "In Progress"
+        for task in tasks
+    )
+
+    completed_tasks = sum(
+        task.status == "Done"
+        for task in tasks
+    )
+
+    total_hours = sum(
+        task.estimated_hours
+        for task in tasks
+    )
+
+    st.subheader("Project Overview")
+
+    metric_columns = st.columns(4)
+
+    with metric_columns[0]:
+        st.metric(
+            "Total Tasks",
+            total_tasks,
+        )
+
+    with metric_columns[1]:
+        st.metric(
+            "To Do",
+            todo_tasks,
+        )
+
+    with metric_columns[2]:
+        st.metric(
+            "In Progress",
+            in_progress_tasks,
+        )
+
+    with metric_columns[3]:
+        st.metric(
+            "Completed",
+            completed_tasks,
+        )
+
+    st.caption(
+        f"Estimated total effort: "
+        f"{total_hours:g} hours"
+    )
+
+    st.divider()
+
+    # ---------------------------------------------------------------
+    # Generated task list
+    # ---------------------------------------------------------------
 
     render_task_plan(tasks)
 
     st.divider()
 
+    # ---------------------------------------------------------------
+    # Interactive task board
+    # ---------------------------------------------------------------
+
     render_task_board(tasks)
 
 else:
+
     st.info(
         "No tasks yet. Describe a project above and click "
         "**Generate Task Plan**."
